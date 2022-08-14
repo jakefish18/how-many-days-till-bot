@@ -2,15 +2,16 @@
 Table handlers for working with the database tables.
 Every table has table handler class with the necessary functions.
 
-Tables and their columns:    
+Tables and their columns:
 
     users:
-        user_id      
-        telegram_id   
+        user_id
+        telegram_id
         selected_time 
+        user_language
 
     goals:
-        user_id     
+        user_id
         goal
         end_date
 
@@ -91,7 +92,8 @@ class UsersHandler(TableHandler):
     Columns description:
         user_id       : user_id to link data from different tables : serial
         telegram_id   : telegram user id to send messages          : int
-        selected_time : selected time by user for notifies         : time   : default 12:00 UTC+0 
+        selected_time : selected time by user for notifies         : text   : default 12:00 UTC+0 
+        user_language : user selected language                     : text
     """
 
     def __init__(self) -> None:
@@ -100,7 +102,7 @@ class UsersHandler(TableHandler):
         self.table_name = "users"
         self.connect()
 
-    def add_user(self, telegram_id: int, selected_time: str, language: str) -> bool:
+    def add_user(self, telegram_id: int, selected_time: str, user_language: str) -> bool:
         """
         Adding a new user to table.
         If user exists, function returns False
@@ -115,7 +117,7 @@ class UsersHandler(TableHandler):
         else:
             update_command = f"INSERT INTO {self.table_name} \
                 (telegram_id, selected_time, user_language) \
-                    VALUES ('{telegram_id}', '{selected_time}', '{language}')\
+                    VALUES ('{telegram_id}', '{selected_time}', '{user_language}')\
                         RETURNING user_id, telegram_id, selected_time, user_language"
             added_row, success = self.execute_table_update_command(update_command)
 

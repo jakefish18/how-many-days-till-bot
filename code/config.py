@@ -9,11 +9,11 @@ Database configs:
     DATABASE_HOST     : database server ip (localhost in this project)
     DATABASE_NAME     : database name for connnection
     DATABASE_USERNAME : database owner username for connection
-    DATABASE_PASSWORD     : database password
+    DATABASE_PASSWORD : database password
 """
 
 # Bot configs.
-BOT_TOKEN = ""
+BOT_TOKEN = "***REMOVED***"
 MESSAGES = { # Messages have two languages: Russian and English
     "ru": { 
         "start": "Привет! Этот бот может напоминать вам о ваших целях каждый день. Введите /help, чтобы получить информацию про бота.",
@@ -37,12 +37,14 @@ MESSAGES = { # Messages have two languages: Russian and English
         "del_goal_2_failed_not_in": "Отменено. Цель не была добавлена!",
         "del_goal_2_success": "Успешно. Цель была удалена!",
         "list_goals_failed_no_goals": "Отменено. Нет добавленных целей!",
-        "set_notifies_time": "Введите время в 24-часовом HH:MM формате для получения уведомлений. Используйте UTC+0:"
+        "set_notifies_time": "Введите время в 24-часовом HH:MM формате для получения уведомлений. Используйте UTC+0:",
+        
+        "notification_message": "дней осталось до"
     }
 }
 
 # Database configs.e
 DATABASE_HOST = "127.0.0.1"
 DATABASE_NAME = "***REMOVED***"
-DATABASE_USERNAME = ""
+DATABASE_USERNAME = "***REMOVED***"
 DATABASE_PASSWORD = ""

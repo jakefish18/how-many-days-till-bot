@@ -2,33 +2,36 @@
 Bot launching and commands setting up.
 
 Bot commands:
-    \start               : bot starting and getting info about bot 
-    \help                : getting info about bot
-    \add_goal            : adding new goal to be notified about every day
-    \del_goal            : deleteing goal
-    \list_goals          : printing list of all added goals
-    \set_notifies_time   : setting time to get notifies every day
+    /start               : bot starting and getting info about bot 
+    /help                : getting info about bot
+    /add_goal            : adding new goal to be notified about every day
+    /del_goal            : deleteing goal
+    /list_goals          : printing list of all added goals
+    /set_notifies_time   : setting time to get notifies every day
 
 Bot link: https://t.me/HowManyDaysTillBot
 """
 
 import datetime
+import asyncio
 
 from aiogram import Bot, types, Dispatcher
-from aiogram.utils import executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.utils import executor
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from concurrent.futures import ProcessPoolExecutor
 
 from config import BOT_TOKEN, MESSAGES
 from database_handler import UsersHandler, GoalsHandler
+from notification_sender import UsersNotifier
 
 
 users_handler = UsersHandler()
 goals_handler = GoalsHandler()
 
 # /add_goal command have two adding stages. 
-# The first stage is goal setting. Program saves goals in users_goals
+# The first stage is goal setting. Program saves goals in users_goals.
 # The second stage is goal end date setting.
 users_goals = {} 
 
@@ -57,7 +60,8 @@ async def register_user(message : types.Message):
     else:
         print(f"Added new uesr {telegram_id}")
 
-    user_language, success = users_handler.get_language_by_telegram_id(telegram_id)
+    user_data, success = users_handler.get_user_data(telegram_id)
+    user_language = user_data[-1]
     print(user_language, success)
 
     if success: # Check for unexpected cases.
@@ -71,7 +75,8 @@ async def send_help_info(message: types.Message):
     """Sending help info to user."""
     telegram_id = message.from_user.id
 
-    user_language, success = users_handler.get_language_by_telegram_id(telegram_id)
+    user_data, success = users_handler.get_user_data(telegram_id)
+    user_language = user_data[-1]
     print(user_language, success)
 
     if success: # Check for unexpected cases.
@@ -223,6 +228,10 @@ async def list_goals(message: types.Message):
 async def set_notifies_time(message: types.Message):
     pass
 
+async def on_startup(bot_dispatcher: Dispatcher):
+    users_notifier = UsersNotifier(bot)
+    asyncio.create_task(users_notifier.start_notifies())
+
 
 # Secondary functions.
 def three_sections_check_1(date: str) -> bool:
@@ -318,4 +327,10 @@ def beautify_goals(user_goals: list) -> str:
     return beautified_goals
 
 
-executor.start_polling(bot_dispatcher, skip_updates=True)
+if __name__ == '__main__': 
+    executor.start_polling(
+        dispatcher = bot_dispatcher, 
+        skip_updates=True,
+        on_startup=on_startup
+    )
+    
