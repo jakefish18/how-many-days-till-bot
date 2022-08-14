@@ -6,19 +6,19 @@ Tables and their columns:
 
     users:
         user_id
-        telegram_id
-        selected_time 
+        user_telegram_id
+        user_notifies_time 
         user_language
 
-    goals:
+    users_events:
         user_id
-        goal
-        end_date
+        user_event
+        user_event_end_date
 
 PostgreSQL used as DBMS.
 """
 
-from typing import Tuple
+from typing import Tuple, List
 import psycopg2
 
 from config import DATABASE_HOST, DATABASE_NAME, DATABASE_USERNAME, DATABASE_PASSWORD
@@ -62,7 +62,7 @@ class TableHandler:
     
     def execute_table_update_command(self, update_command: str) -> Tuple[list, bool]:
         """
-        Table eLements updating commands executing.
+        The table elements updating commands executing.
         The first returning element is the boolean value that the elements have been updated.
         The second returning element is the updated rows list.
         """
@@ -90,10 +90,10 @@ class UsersHandler(TableHandler):
     Users table handler.
     
     Columns description:
-        user_id       : user_id to link data from different tables : serial
-        telegram_id   : telegram user id to send messages          : int
-        selected_time : selected time by user for notifies         : text   : default 12:00 UTC+0 
-        user_language : user selected language                     : text
+        user_id            : user_id to link data from different tables : serial
+        user_telegram_id   : user telegram id to send messages          : int
+        user_notifies_time : selected time by user for notifies         : text   : default 12:00 UTC+0 
+        user_language      : user selected language                     : text
     """
 
     def __init__(self) -> None:
@@ -102,44 +102,44 @@ class UsersHandler(TableHandler):
         self.table_name = "users"
         self.connect()
 
-    def add_user(self, telegram_id: int, selected_time: str, user_language: str) -> bool:
+    def add_user(self, user_telegram_id: int, user_selected_time: str, user_language: str) -> bool:
         """
         Adding a new user to table.
         If user exists, function returns False
         else function returns True after inserting into table.
         """
-        select_command = f"SELECT * FROM {self.table_name} WHERE telegram_id='{telegram_id}'"
+        select_command = f"SELECT * FROM {self.table_name} WHERE user_telegram_id='{user_telegram_id}'"
         select_result, is_element = self.execute_select_command(select_command)        
         
-        if is_element: # If user exists.
+        if is_element: # If user with this user telegram id exists.
             return False
 
         else:
             update_command = f"INSERT INTO {self.table_name} \
-                (telegram_id, selected_time, user_language) \
-                    VALUES ('{telegram_id}', '{selected_time}', '{user_language}')\
-                        RETURNING user_id, telegram_id, selected_time, user_language"
+                (user_telegram_id, user_notifies_time, user_language) \
+                    VALUES ('{user_telegram_id}', '{user_selected_time}', '{user_language}')\
+                        RETURNING user_id, user_telegram_id, user_selected_time, user_language"
             added_row, success = self.execute_table_update_command(update_command)
 
             return success
 
-    def update_notifies_time(self, telegram_id: int, selected_time: str) -> bool:
+    def update_user_notifies_time(self, telegram_id: int, user_notifies_time: str) -> bool:
         """
         Change time of notify getting time.
         Uses UTC+0 and 24 hour format. 
         """
         update_command = f"UPDATE {self.table_name}\
-            SET selected_time={selected_time}\
-                WHERE telegram_id={telegram_id}\
-                    RETURNING user_id, telegram_id, selected_time"   
+            SET user_notifies_time={user_notifies_time}\
+                WHERE user_telegram_id={telegram_id}\
+                    RETURNING user_id, user_telegram_id, user_notifies_time"   
         updated_rows, success = self.execute_table_update_command(update_command)
 
         return success
 
 
-    def get_user_data(self, telegram_id: int) -> Tuple[Tuple, bool]:
-        """Getting user data by select command with telegram_id."""
-        select_command = f"SELECT * FROM {self.table_name} WHERE telegram_id='{telegram_id}'"
+    def get_user_data(self, user_telegram_id: int) -> Tuple[Tuple, bool]:
+        """Getting user data by select command with user telegram id."""
+        select_command = f"SELECT * FROM {self.table_name} WHERE user_telegram_id='{user_telegram_id}'"
         selected_rows, is_result = self.execute_select_command(select_command)
 
         if is_result:
@@ -148,37 +148,39 @@ class UsersHandler(TableHandler):
         else:
             return (), is_result
 
-    def get_users_data(self) -> list:
-        """Getting users data in list."""
+    def get_users_data(self) -> List[Tuple]:
+        """Getting all users data in table."""
         select_command = f"SELECT * from {self.table_name}"
         selected_rows, is_result = self.execute_select_command(select_command)
 
         return selected_rows 
 
 
-class GoalsHandler(TableHandler):
+class EventsHandler(TableHandler):
     """
-    Goals table handler.
+    Events table handler.
 
     Columns description:
-        user_id  : user_id to link data from different tables : int
-        goal     : goal description                           : text
-        end_date : goal end date to be notified               : date
+        user_id             : user_id to link data from different tables : int
+        user_event          : user event description                     : text
+        user_event_end_date : user event end date to get notifies till   : date
     """
 
     def __init__(self) -> None:
         super().__init__()
 
-        self.table_name = "goals"
+        self.table_name = "users_events"
+        self.user_id_column_name = "user_id"
+
         self.connect()
 
-    def add_goal(self, user_id: str, goal: str, end_date: str) -> bool:
+    def add_goal(self, user_id: str, user_event: str, user_event_end_date: str) -> bool:
         """
-        Adding new user goal.
-        Function have check that data was inserted and returns bool of success adding. 
+        Adding new user event.
+        Function have check that data was inserted before and returns bool of success adding. 
         """
         select_command = f"SELECT * FROM {self.table_name}\
-            WHERE user_id='{user_id}' AND goal='{goal}'"
+            WHERE user_id='{user_id}' AND user_event='{user_event}'"
         selected_rows, is_result = self.execute_select_command(select_command)
 
         if is_result:
@@ -186,27 +188,27 @@ class GoalsHandler(TableHandler):
         
         else:
             table_update_command = f"INSERT INTO {self.table_name}\
-                (user_id, goal, end_date)\
-                    VALUES ('{user_id}', '{goal}', '{end_date}')\
-                        RETURNING user_id, goal, end_date"
+                (user_id, user_goal, user_event_end_date)\
+                    VALUES ('{user_id}', '{user_event}', '{user_event_end_date}')\
+                        RETURNING user_id, user_event, user_event_end_date"
             added_row, success = self.execute_table_update_command(table_update_command)
 
             return success # Insert result returning.
 
-    def del_goal(self, user_id: str, goal: str) -> bool:
+    def del_event(self, user_id: str, user_event: str) -> bool:
         """
-        Deleting goal from the goals table.
+        Deleting user event from the users_events table.
         """
         table_update_command = f"DELETE FROM {self.table_name}\
-            WHERE user_id='{user_id}' AND goal='{goal}'\
-                RETURNING user_id, goal, end_date"
+            WHERE user_id='{user_id}' AND user_event='{user_event}'\
+                RETURNING user_id, user_goal, user_event_end_date"
         deleted_row, success = self.execute_table_update_command(table_update_command)
 
         return success
     
-    def get_user_goals(self, user_id: str) -> Tuple[list, bool]:
+    def get_user_events(self, user_id: str) -> Tuple[list, bool]:
         """
-        Getting all user goals from the table.
+        Getting all user events from the table.
         """
         select_command = f"SELECT * FROM {self.table_name}\
             WHERE user_id='{user_id}'"
@@ -214,12 +216,12 @@ class GoalsHandler(TableHandler):
 
         return selected_rows, is_data
 
-    def is_goal_in_table(self, user_id: str, goal: str) -> bool:
+    def is_user_event_in_table(self, user_id: str, user_event: str) -> bool:
         """
-        Checking if a goal exists in the table.
+        Checking if a user event exists in the table.
         """ 
         select_command = f"SELECT * from {self.table_name}\
-            WHERE user_id='{user_id}' AND goal='{goal}'"
+            WHERE user_id='{user_id}' AND user_event='{user_event}'"
         selected_row, is_data = self.execute_select_command(select_command)
 
         return is_data

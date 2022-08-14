@@ -4,9 +4,9 @@ Bot launching and commands setting up.
 Bot commands:
     /start               : bot starting and getting info about bot 
     /help                : getting info about bot
-    /add_goal            : adding new goal to be notified about every day
-    /del_goal            : deleteing goal
-    /list_goals          : printing list of all added goals
+    /add_event           : adding new event to be notified about every day
+    /del_event           : deleteing event
+    /list_events         : printing list of all added events
     /set_notifies_time   : setting time to get notifies every day
 
 Bot link: https://t.me/HowManyDaysTillBot
@@ -23,49 +23,49 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from concurrent.futures import ProcessPoolExecutor
 
 from config import BOT_TOKEN, MESSAGES
-from database_handler import UsersHandler, GoalsHandler
+from database_handler import UsersHandler, EventsHandler
 from notification_sender import UsersNotifier
 
 
 users_handler = UsersHandler()
-goals_handler = GoalsHandler()
+user_events_handler = EventsHandler()
 
 # /add_goal command have two adding stages. 
-# The first stage is goal setting. Program saves goals in users_goals.
-# The second stage is goal end date setting.
-users_goals = {} 
+# The first stage is event setting. Program saves events in users_events.
+# The second stage is event end date setting.
+users_events = {} 
 
 bot = Bot(BOT_TOKEN)
 bot_dispatcher  = Dispatcher(bot, storage=MemoryStorage())
 
 
 class Form(StatesGroup):
-    add_goal_description = State()
-    add_goal_date = State()
-    del_goal_description = State()
+    add_event_description = State()
+    add_event_date = State()
+    del_event_description = State()
 
 
 @bot_dispatcher.message_handler(commands=["start"])
 async def register_user(message : types.Message):
     """Adding user to users table and greetings sending."""
-    telegram_id = message.from_user.id
+    user_telegram_id = message.from_user.id
     default_time = "12:00"
     language = "ru"
 
-    result = users_handler.add_user(telegram_id, default_time, language) 
+    result = users_handler.add_user(user_telegram_id, default_time, language) 
     
-    if not result: # Logging telegram_id, if user already added.
-        print(f"Already in table {telegram_id}")
+    if not result: # Logging user_telegram_id, if user already added.
+        print(f"Already in table {user_telegram_id}")
     
     else:
-        print(f"Added new uesr {telegram_id}")
+        print(f"Added new uesr {user_telegram_id}")
 
-    user_data, success = users_handler.get_user_data(telegram_id)
+    user_data, success = users_handler.get_user_data(user_telegram_id)
     user_language = user_data[-1]
     print(user_language, success)
 
     if success: # Check for unexpected cases.
-        await bot.send_message(telegram_id, MESSAGES[user_language]["start"])
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["start"])
 
     else:
         print("CRITICAL!!! Unexpected error")
@@ -93,136 +93,136 @@ async def cancel_command(message: types.Message, state: FSMContext):
     if current_state is None:
         return
 
-    telegram_id = message.from_user.id
-    user_data, success = users_handler.get_user_data(telegram_id)
+    user_telegram_id = message.from_user.id
+    user_data, success = users_handler.get_user_data(user_telegram_id)
     user_language = user_data[-1]
 
     await state.finish()
-    await bot.send_message(telegram_id, MESSAGES[user_language]["cancel"])
+    await bot.send_message(user_telegram_id, MESSAGES[user_language]["cancel"])
 
-@bot_dispatcher.message_handler(commands=["add_goal"])
-async def add_goal_part_1(message: types.Message):
+@bot_dispatcher.message_handler(commands=["add_event"])
+async def add_event_part_1(message: types.Message):
     """
-    Adding new user goal.
-    Bot requests goal description in first stage.
-    """
-    telegram_id = message.from_user.id
-    user_data, success = users_handler.get_user_data(telegram_id)
-    user_language = user_data[-1]
-
-    await Form.add_goal_description.set()
-    await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_1"])
-
-@bot_dispatcher.message_handler(state=Form.add_goal_description)
-async def add_goal_part_2(message: types.Message, state: FSMContext):
-    """
-    Adding new user goal.
-    The bot requests the goal end date in the second stage.
-    The bot adds the goal description to users_goals until the date is written.
+    Adding new user event.
+    Bot requests event description in first stage.
     """
     telegram_id = message.from_user.id
     user_data, success = users_handler.get_user_data(telegram_id)
     user_language = user_data[-1]
 
-    users_goals[telegram_id] = message.text
+    await Form.add_event_description.set()
+    await bot.send_message(telegram_id, MESSAGES[user_language]["add_event_1"])
+
+@bot_dispatcher.message_handler(state=Form.add_event_description)
+async def add_event_part_2(message: types.Message, state: FSMContext):
+    """
+    Adding new user event.
+    The bot requests the event end date in the second stage.
+    The bot adds the event description to users_events until the date is written.
+    """
+    telegram_id = message.from_user.id
+    user_data, success = users_handler.get_user_data(telegram_id)
+    user_language = user_data[-1]
+
+    users_events[telegram_id] = message.text
     await state.finish()
-    await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_2"])
-    await Form.add_goal_date.set()
+    await bot.send_message(telegram_id, MESSAGES[user_language]["add_event_2"])
+    await Form.add_event_date.set()
 
-@bot_dispatcher.message_handler(state=Form.add_goal_date)
-async def add_goal_part_3(message: types.Message, state: FSMContext):
+@bot_dispatcher.message_handler(state=Form.add_event_date)
+async def add_event_part_3(message: types.Message, state: FSMContext):
     """
-    Adding new user goal.
-    The bot inserts new user goal into table.
+    Adding new user event.
+    The bot inserts new user event into table.
     """
-    telegram_id = message.from_user.id
-    user_data, success = users_handler.get_user_data(telegram_id)
+    user_telegram_id = message.from_user.id
+    user_data, success = users_handler.get_user_data(user_telegram_id)
     user_id, _, _, user_language = user_data 
     
-    user_goal = users_goals[telegram_id]
-    user_goal_date = message.text
+    user_event = users_events[user_telegram_id]
+    user_event_date = message.text
 
     await state.finish()
 
-    if not three_sections_check_1(user_goal_date):
-        await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_3_failed_no_three_sections"])
+    if not three_sections_check_1(user_event_date):
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_no_three_sections"])
     
-    elif not numbers_check_2(user_goal_date):
-        await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_3_failed_not_numbers"])
+    elif not numbers_check_2(user_event_date):
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_not_numbers"])
 
-    elif not month_limit_check_3(user_goal_date):
-        await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_3_failed_out_of_limits"])
+    elif not month_limit_check_3(user_event_date):
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_out_of_limits"])
 
-    elif not date_in_future_сheck_4(user_goal_date):
-        await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_3_failed_date_in_past"])
+    elif not date_in_future_сheck_4(user_event_date):
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_date_in_past"])
 
     else:
-        is_added = goals_handler.add_goal(user_id, user_goal, user_goal_date)
+        is_event_added = user_events_handler.add_goal(user_id, user_event, user_event_date)
 
 
-        if is_added:
-            await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_3_success"])
+        if is_event_added:
+            await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_success"])
     
         else:
-            await bot.send_message(telegram_id, MESSAGES[user_language]["add_goal_3_failed_already_in"])
+            await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_already_in"])
 
-@bot_dispatcher.message_handler(commands=["del_goal"])
-async def del_goal_part_1(message: types.Message):
+@bot_dispatcher.message_handler(commands=["del_event"])
+async def del_event_part_1(message: types.Message):
     """
-    Adding new user goal.
+    Adding new user event.
     The bot requests the goal description in the second stage.
     """
-    telegram_id = message.from_user.id
-    user_data, is_data = users_handler.get_user_data(telegram_id)
+    user_telegram_id = message.from_user.id
+    user_data, is_data = users_handler.get_user_data(user_telegram_id)
     user_language = user_data[-1]
  
-    await Form.del_goal_description.set()
-    await bot.send_message(telegram_id, MESSAGES[user_language]["del_goal_1"])
+    await Form.del_event_description.set()
+    await bot.send_message(user_telegram_id, MESSAGES[user_language]["del_event_1"])
 
-@bot_dispatcher.message_handler(state=Form.del_goal_description)
-async def del_goal_part_2(message: types.Message, state: FSMContext):
+@bot_dispatcher.message_handler(state=Form.del_event_description)
+async def del_event_part_2(message: types.Message, state: FSMContext):
     """
-    Adding new user goal.
-    The bot delete user goal from table.
+    Adding new user event.
+    The bot delete user event from table.
     """
-    telegram_id = message.from_user.id
-    user_data, success = users_handler.get_user_data(telegram_id)
+    user_telegram_id = message.from_user.id
+    user_data, success = users_handler.get_user_data(user_telegram_id)
     user_id, _, _, user_language = user_data 
-    goal_description = message.text    
+    user_event_description = message.text    
 
-    is_goal = goals_handler.is_goal_in_table(user_id, goal_description) 
+    is_user_event = user_events_handler.is_user_event_in_table(user_id, user_event_description) 
 
     await state.finish()
 
-    if not is_goal:
-        await bot.send_message(telegram_id, MESSAGES[user_language]["del_goal_2_failed_not_in"])
+    if not is_user_event:
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["del_event_2_failed_not_in"])
     
     else:
-        goals_handler.del_goal(user_id, goal_description)
-        await bot.send_message(telegram_id, MESSAGES[user_language]["del_goal_2_success"])
+        user_events_handler.del_event(user_id, user_event_description)
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["del_event_2_success"])
         
 
-@bot_dispatcher.message_handler(commands=["list_goals"])
+@bot_dispatcher.message_handler(commands=["list_events"])
 async def list_goals(message: types.Message):
     """
-    Send all goals list to the user.
+    Send all events list to the user.
     Message format:
     1. ...
     2. ...
     3. ...
     """
-    telegram_id = message.from_user.id
-    user_data, success = users_handler.get_user_data(telegram_id)
+    user_telegram_id = message.from_user.id
+    user_data, success = users_handler.get_user_data(user_telegram_id)
     user_id, _, _, user_language = user_data
 
-    user_goals, is_goals = goals_handler.get_user_goals(user_id)
+    user_events, is_user_events = user_events_handler.get_user_events(user_id)
     
-    if is_goals:
-        beutified_user_goals = beautify_goals(user_goals)
-        await bot.send_message(telegram_id, beutified_user_goals)
+    if is_user_events:
+        beutified_user_events = beautify_events(user_events)
+        await bot.send_message(user_telegram_id, beutified_user_events)
 
     else:
-        await bot.send_message(telegram_id, MESSAGES[user_language]["list_goals_failed_no_goals"])
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["list_events_failed_no_goals"])
 
 @bot_dispatcher.message_handler(commands=["set_notifies_time"])
 async def set_notifies_time(message: types.Message):
@@ -302,29 +302,29 @@ def month_limit_check_3(date: str) -> bool:
     else: # If all limits observed.
         return True
 
-def date_in_future_сheck_4(goal_date: str) -> bool:
+def date_in_future_сheck_4(user_event_date: str) -> bool:
     """
     Comparing two dates.
     """
-    day, month, year = map(int, goal_date.split('.'))
-    goal_date = datetime.date(year, month, day)
+    day, month, year = map(int, user_event_date.split('.'))
+    user_event_date = datetime.date(year, month, day)
     today_date = datetime.date.today()
 
-    return goal_date > today_date
+    return user_event_date > today_date
 
-def beautify_goals(user_goals: list) -> str:
+def beautify_events(user_events: list) -> str:
     """
-    Adding serial number before every goal for the sending.
+    Adding serial number before every event for the sending.
     """
-    beautified_goals = ""
+    beautified_events = ""
     counter = 1
 
-    for goal in user_goals:
-        # goal[1] is goal and goal[2] is goal end date.
-        beautified_goals += f"{counter}. {goal[1]} {goal[2]}" + '\n' 
+    for user_event in user_events:
+        #user_event[1] is event_description and user_event[2] is event end date.
+        beautified_events += f"{counter}. {user_event[1]} {user_event[2]}" + '\n' 
         counter += 1
 
-    return beautified_goals
+    return beautified_events
 
 
 if __name__ == '__main__': 
