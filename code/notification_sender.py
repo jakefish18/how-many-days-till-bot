@@ -4,7 +4,7 @@ Notifying all users about their events.
 
 import asyncio
 
-from datetime import date
+from datetime import date, datetime
 from aiogram import Bot
 
 from database_handler import UsersHandler, EventsHandler
@@ -26,8 +26,10 @@ class UsersNotifier():
         The function goes sleep for 1 day after work finish 
         """
         while True:
-        
-            users_data = self.users_handler.get_users_data()
+            
+            current_time = self._get_current_time()
+            rounded_time = self._get_rounded_time(current_time)
+            users_data = self.users_handler.get_users_to_be_notified(rounded_time)
 
             for user_data in users_data:
                 user_id, user_telegram_id, _, user_language = user_data
@@ -35,7 +37,7 @@ class UsersNotifier():
 
                 for user_goal in user_goals:
                     user_goal_end_date = user_goal[2]
-                    difference = await self._get_diff(user_goal_end_date)
+                    difference = self._get_diff(user_goal_end_date)
 
                     if difference < 0: # If event was passed.
                         user_goal_description = user_goal[1]
@@ -48,23 +50,55 @@ class UsersNotifier():
                             print(f"Something went wrong when programm tried to deleted passed event!")
 
                     else:
+                        print(user_language)
                         mid_message = MESSAGES[user_language]["notification_message"]
                         notification_message = f"{difference} {mid_message} '{user_goal[1]}'!"  
 
                         print(f"{user_telegram_id}: {notification_message}")
                         await self.bot.send_message(user_telegram_id, notification_message)
 
-            await asyncio.sleep(86400)
+            await asyncio.sleep(1800)
 
-    async def _get_diff(self, end_date: str) -> int:
+    def _get_current_time(self) -> str:
+        moment = datetime.now()
+        current_hour = str(moment.hour).ljust(2, "0")
+        current_minute = str(moment.minute).ljust(2, "0")
+        current_time = f"{current_hour}:{current_minute}"
+
+        return current_time
+
+    def _get_rounded_time(self, time: str) -> str:
         """
-        Сalculate the difference between today and end dates.
+        Rounding time to whole hours or half hours. 
+        """
+        hour, minute = map(int, time.split(":"))
+        new_time = ""
+
+        if minute < 15:
+            new_hour = str(hour).ljust(2, "0")     
+            new_time = f"{hour}:00"
+        
+        elif minute >= 45: 
+            new_hour = str((hour + 1) % 24)
+            new_hour = new_hour.ljust(2, "0") 
+            new_time = f"{new_hour}:00"
+
+        else:
+            new_time = f"{hour}:30"
+
+        return new_time
+        
+    def _get_diff(self, user_event_end_date: str) -> int:
+        """
+        Сalculate the difference between today and user event end date.
         Input date format: D.M.Y
         """
-        day, month, year = map(int, end_date.split('.'))
-        end_date = date(year, month, day)
+        day, month, year = map(int, user_event_end_date.split('.'))
+        user_event_end_date = date(year, month, day)
         
-        difference = end_date - date.today()
+        difference = user_event_end_date - date.today()
 
         return difference.days
+    
+    
 

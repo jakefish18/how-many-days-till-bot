@@ -18,6 +18,7 @@ Tables and their columns:
 PostgreSQL used as DBMS.
 """
 
+from ast import Return
 from typing import Tuple, List
 import psycopg2
 
@@ -41,7 +42,7 @@ class TableHandler:
             password=DATABASE_PASSWORD
         )
 
-    def execute_select_command(self, select_command: str) -> Tuple[list, bool]:
+    def execute_select_command(self, select_command: str) -> Tuple[List[Tuple], bool]:
         """
         Elements selecting commands executing.
         First returning element is the boolean value that the elements have been selected.
@@ -50,7 +51,7 @@ class TableHandler:
         print(select_command)
         with self.connection.cursor() as cursor:
             cursor.execute(select_command)
-            
+
             selected_rows = cursor.fetchall()
             print(selected_rows)
 
@@ -60,7 +61,7 @@ class TableHandler:
             else:
                 return [], False
     
-    def execute_table_update_command(self, update_command: str) -> Tuple[list, bool]:
+    def execute_table_update_command(self, update_command: str) -> Tuple[List[Tuple], bool]:
         """
         The table elements updating commands executing.
         The first returning element is the boolean value that the elements have been updated.
@@ -70,7 +71,7 @@ class TableHandler:
         with self.connection.cursor() as cursor:
             cursor.execute(update_command)
             self.connection.commit()
-            
+
             updated_rows = cursor.fetchall() # Fetching updated rows.
             print(updated_rows)
 
@@ -84,11 +85,11 @@ class TableHandler:
         """Closing a database connection."""
         self.connection.close()
 
-        
+
 class UsersHandler(TableHandler):
     """
     Users table handler.
-    
+
     Columns description:
         user_id            : user_id to link data from different tables : serial
         user_telegram_id   : user telegram id to send messages          : int
@@ -100,6 +101,7 @@ class UsersHandler(TableHandler):
         super().__init__()
 
         self.table_name = "users"
+
         self.connect()
 
     def add_user(self, user_telegram_id: int, user_selected_time: str, user_language: str) -> bool:
@@ -123,19 +125,18 @@ class UsersHandler(TableHandler):
 
             return success
 
-    def update_user_notifies_time(self, telegram_id: int, user_notifies_time: str) -> bool:
+    def update_user_notifies_time(self, user_telegram_id: int, user_notifies_time: str) -> bool:
         """
-        Change time of notify getting time.
+        Change notify getting time.
         Uses UTC+0 and 24 hour format. 
         """
         update_command = f"UPDATE {self.table_name}\
-            SET user_notifies_time={user_notifies_time}\
-                WHERE user_telegram_id={telegram_id}\
+            SET user_notifies_time='{user_notifies_time}'\
+                WHERE user_telegram_id='{user_telegram_id}'\
                     RETURNING user_id, user_telegram_id, user_notifies_time"   
         updated_rows, success = self.execute_table_update_command(update_command)
 
         return success
-
 
     def get_user_data(self, user_telegram_id: int) -> Tuple[Tuple, bool]:
         """Getting user data by select command with user telegram id."""
@@ -155,6 +156,16 @@ class UsersHandler(TableHandler):
 
         return selected_rows 
 
+    def get_users_to_be_notified(self, time: str) -> List[Tuple]:
+        """
+        Get users to be notified.
+        Users are returned if the time selected by the user is equal to the time entered.
+        """
+        select_command = f"SELECT * FROM {self.table_name}\
+            WHERE user_notifies_time='{time}'"
+        selected_rows, is_result = self.execute_select_command(select_command)
+
+        return selected_rows
 
 class EventsHandler(TableHandler):
     """
@@ -170,7 +181,6 @@ class EventsHandler(TableHandler):
         super().__init__()
 
         self.table_name = "users_events"
-        self.user_id_column_name = "user_id"
 
         self.connect()
 
@@ -188,7 +198,7 @@ class EventsHandler(TableHandler):
         
         else:
             table_update_command = f"INSERT INTO {self.table_name}\
-                (user_id, user_goal, user_event_end_date)\
+                (user_id, user_event, user_event_end_date)\
                     VALUES ('{user_id}', '{user_event}', '{user_event_end_date}')\
                         RETURNING user_id, user_event, user_event_end_date"
             added_row, success = self.execute_table_update_command(table_update_command)
@@ -201,12 +211,12 @@ class EventsHandler(TableHandler):
         """
         table_update_command = f"DELETE FROM {self.table_name}\
             WHERE user_id='{user_id}' AND user_event='{user_event}'\
-                RETURNING user_id, user_goal, user_event_end_date"
+                RETURNING user_id, user_event, user_event_end_date"
         deleted_row, success = self.execute_table_update_command(table_update_command)
 
         return success
-    
-    def get_user_events(self, user_id: str) -> Tuple[list, bool]:
+
+    def get_user_events(self, user_id: str) -> Tuple[List[Tuple], bool]:
         """
         Getting all user events from the table.
         """
@@ -225,4 +235,3 @@ class EventsHandler(TableHandler):
         selected_row, is_data = self.execute_select_command(select_command)
 
         return is_data
-
