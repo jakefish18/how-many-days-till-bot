@@ -38,14 +38,14 @@ MESSAGES = { # Messages have two languages: Russian and English
         "del_event_2_failed_not_in": "Отменено. Событие не было добавлено!",
         "del_event_2_success": "Успешно. Событие было удалено!",
         "list_events_failed_no_events": "Отменено. Нет добавленных событий!",
-        "set_notifications_time_1": "Введите время в 24-часовом HH:MM формате для получения уведомлений. Используйте UTC+0:",
+        "set_notifications_time_1": "Введите время в 24-часовом HH:MM формате для получения уведомлений. Используйте UTC+3:",
         "set_notifications_time_2_failed_no_two_sections": "Отменено. Должно быть 2 секции, которые разделены двоеточиями!",
         "set_notifications_time_2_failed_not_numbers": "Отменено. Часы и минуты должны быть целыми числами!",
         "set_notifications_time_2_failed_something_went_wrong": "Отменено. Что-то пошло не так, напишите мне: @jakefish",
         "set_notifications_time_2_failed_out_of_limits": "Отменено. Часы должны быть больше 0 и меньше 24, а минуты больше 0 и меньше 60!",
         "set_notifications_time_2_success": "Успешно. Время получения уведомлений изменено! Задержка уведомлений +/- 30 минут",
         "notification_message": "дней осталось до",
-        "update_message": "Бот был обновлен. Были изменены ошибки в словах, а также добавлена функция /get_notifications_time. Чтобы посмотреть, что есть нового, используйте /help.",
+        "update_message": "Бот был обновлен. Теперь бот использует UTC+3, а также был пофикшен баг, при котором пользователи не могли получать уведомления до 10:00. Чтобы посмотреть, что есть нового, используйте /help.",
         "get_notifications_time": "Ваше время для получения уведомлений по всем событиям: "
     }
 }

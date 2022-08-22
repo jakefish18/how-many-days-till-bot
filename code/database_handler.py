@@ -18,7 +18,6 @@ Tables and their columns:
 PostgreSQL used as DBMS.
 """
 
-from ast import Return
 from typing import Tuple, List
 import psycopg2
 

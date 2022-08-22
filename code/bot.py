@@ -393,7 +393,7 @@ def get_rounded_time(time: str) -> str:
 
     if minute < 15:
         new_hour = str(hour).rjust(2, "0")     
-        new_time = f"{hour}:00"
+        new_time = f"{new_hour}:00"
     
     elif minute >= 45: 
         new_hour = str((hour + 1) % 24)
