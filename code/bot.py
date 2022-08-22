@@ -230,10 +230,10 @@ async def list_goals(message: types.Message):
     else:
         await bot.send_message(user_telegram_id, MESSAGES[user_language]["list_events_failed_no_events"])
 
-@bot_dispatcher.message_handler(commands=["set_notifies_time"])
-async def set_notifies_time_part_1(message: types.Message):
+@bot_dispatcher.message_handler(commands=["set_notifications_time"])
+async def set_notifications_time_part_1(message: types.Message):
     """
-    Setting user notfifes getting time.
+    Setting user notfications getting time.
     The function transfers selected timezone by user to UTC+0 time
     and inserts into database.
     """
@@ -242,36 +242,45 @@ async def set_notifies_time_part_1(message: types.Message):
     user_id, _, _, user_language = user_data
 
     await Form.st_notifies_time.set()
-    await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifies_time_1"])
+    await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_1"])
 
 @bot_dispatcher.message_handler(state=Form.st_notifies_time)
-async def set_notifies_time_part_2(message: types.Message, state: FSMContext):
+async def set_notifications_time_part_2(message: types.Message, state: FSMContext):
     user_telegram_id = message.from_user.id
     user_data, success = users_handler.get_user_data(user_telegram_id)
-    user_id, _, _, user_language = user_data
+    user_language = user_data[-1]
 
-    new_user_notifies_time = message.text
+    new_user_notifications_time = message.text
     
     await state.finish()
 
-    if not chk_number_of_sections(new_user_notifies_time, ":", 2):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifies_time_2_failed_no_two_sections"])
+    if not chk_number_of_sections(new_user_notifications_time, ":", 2):
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_no_two_sections"])
 
-    elif not chk_is_numbers(new_user_notifies_time, ":"):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifies_time_2_failed_not_numbers"])
+    elif not chk_is_numbers(new_user_notifications_time, ":"):
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_not_numbers"])
 
-    elif not chk_time_limit(new_user_notifies_time, ":"):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifies_time_2_failed_out_of_limits"])
+    elif not chk_time_limit(new_user_notifications_time, ":"):
+        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_out_of_limits"])
 
     else:
-        new_user_notifies_time = get_rounded_time(new_user_notifies_time)
-        success = users_handler.update_user_notifies_time(user_telegram_id, new_user_notifies_time)
+        new_user_notifications_time = get_rounded_time(new_user_notifications_time)
+        success = users_handler.update_user_notifications_time(user_telegram_id, new_user_notifications_time)
 
         if not success:
-            await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifies_time_2_failed_something_went_wrong"])
+            await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_something_went_wrong"])
 
         else:
-            await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifies_time_2_success"])
+            await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_success"])
+
+@bot_dispatcher.message_handler(commands=["get_notifications_time"])
+async def get_notifications_time(message: types.Message):
+    user_telegram_id = message.from_user.id
+    user_data, success = users_handler.get_user_data(user_telegram_id)
+    print(user_data)
+    _, _, user_notifications_time, user_language = user_data 
+
+    await bot.send_message(user_telegram_id, MESSAGES[user_language]["get_notifications_time"] + user_notifications_time)
 
 async def on_startup(bot_dispatcher: Dispatcher):
     users_notifier = UsersNotifier(bot)
@@ -383,16 +392,17 @@ def get_rounded_time(time: str) -> str:
     new_time = ""
 
     if minute < 15:
-        new_hour = str(hour).ljust(2, "0")     
+        new_hour = str(hour).rjust(2, "0")     
         new_time = f"{hour}:00"
     
     elif minute >= 45: 
         new_hour = str((hour + 1) % 24)
-        new_hour = new_hour.ljust(2, "0") 
+        new_hour = new_hour.rjust(2, "0") 
         new_time = f"{new_hour}:00"
 
     else:
-        new_time = f"{hour}:30"
+        new_hour = str(hour).rjust(2, "0")     
+        new_time = f"{new_hour}:30"
 
     return new_time
 

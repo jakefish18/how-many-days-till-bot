@@ -91,10 +91,10 @@ class UsersHandler(TableHandler):
     Users table handler.
 
     Columns description:
-        user_id            : user_id to link data from different tables : serial
-        user_telegram_id   : user telegram id to send messages          : int
-        user_notifies_time : selected time by user for notifies         : text   : default 12:00 UTC+0 
-        user_language      : user selected language                     : text
+        user_id                 : user_id to link data from different tables : serial
+        user_telegram_id        : user telegram id to send messages          : int
+        user_notifications_time : selected time by user for notifies         : text   : default 12:00 UTC+0 
+        user_language           : user selected language                     : text
     """
 
     def __init__(self) -> None:
@@ -104,7 +104,7 @@ class UsersHandler(TableHandler):
 
         self.connect()
 
-    def add_user(self, user_telegram_id: int, user_selected_time: str, user_language: str) -> bool:
+    def add_user(self, user_telegram_id: int, user_notifications_time: str, user_language: str) -> bool:
         """
         Adding a new user to table.
         If user exists, function returns False
@@ -118,22 +118,22 @@ class UsersHandler(TableHandler):
 
         else:
             update_command = f"INSERT INTO {self.table_name} \
-                (user_telegram_id, user_notifies_time, user_language) \
-                    VALUES ('{user_telegram_id}', '{user_selected_time}', '{user_language}')\
-                        RETURNING user_id, user_telegram_id, user_selected_time, user_language"
+                (user_telegram_id, user_notifications_time, user_language) \
+                    VALUES ('{user_telegram_id}', '{user_notifications_time}', '{user_language}')\
+                        RETURNING user_id, user_telegram_id, user_notifications_time, user_language"
             added_row, success = self.execute_table_update_command(update_command)
 
             return success
 
-    def update_user_notifies_time(self, user_telegram_id: int, user_notifies_time: str) -> bool:
+    def update_user_notifications_time(self, user_telegram_id: int, user_notifications_time: str) -> bool:
         """
         Change notify getting time.
         Uses UTC+0 and 24 hour format. 
         """
         update_command = f"UPDATE {self.table_name}\
-            SET user_notifies_time='{user_notifies_time}'\
+            SET user_notifications_time='{user_notifications_time}'\
                 WHERE user_telegram_id='{user_telegram_id}'\
-                    RETURNING user_id, user_telegram_id, user_notifies_time"   
+                    RETURNING user_id, user_telegram_id, user_notifications_time"   
         updated_rows, success = self.execute_table_update_command(update_command)
 
         return success
@@ -162,7 +162,7 @@ class UsersHandler(TableHandler):
         Users are returned if the time selected by the user is equal to the time entered.
         """
         select_command = f"SELECT * FROM {self.table_name}\
-            WHERE user_notifies_time='{time}'"
+            WHERE user_notifications_time='{time}'"
         selected_rows, is_result = self.execute_select_command(select_command)
 
         return selected_rows

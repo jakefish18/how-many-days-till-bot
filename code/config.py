@@ -23,7 +23,8 @@ MESSAGES = { # Messages have two languages: Russian and English
             "/add_event — добавить событие.\n" +\
             "/del_event — удалить событие.\n" +\
             "/list_events — получить список всех событий.\n" +\
-            "/set_notifies_time — поставить время получения уведомлений.",
+            "/set_notifications_time — поставить время получения уведомлений.\n" +\
+            "/get_notifications_time — получить текущее время получения уведомлений",     
         "cancel": "Отменено.",
         "add_event_1": "Введите событие для добавления и последующего получения уведомлений:",
         "add_event_2": "Введите конечную дату этого события (формат D.M.Y):",
@@ -37,13 +38,15 @@ MESSAGES = { # Messages have two languages: Russian and English
         "del_event_2_failed_not_in": "Отменено. Событие не было добавлено!",
         "del_event_2_success": "Успешно. Событие было удалено!",
         "list_events_failed_no_events": "Отменено. Нет добавленных событий!",
-        "set_notifies_time_1": "Введите время в 24-часовом HH:MM формате для получения уведомлений. Используйте UTC+0:",
-        "set_notifies_time_2_failed_no_two_sections": "Отменено. Должно быть 2 секции, которые разделены двоеточиями!",
-        "set_notifies_time_2_failed_not_numbers": "Отменено. Часы и минуты должны быть целыми числами!",
-        "set_notifies_time_2_failed_something_went_wrong": "Отменено. Что-то пошло не так, напишите мне: @jakefish",
-        "set_notifies_time_2_failed_out_of_limits": "Отменено. Часы должны быть больше 0 и меньше 24, а минуты больше 0 и меньше 60!",
-        "set_notifies_time_2_success": "Успешно. Время получения уведомлений изменено! Задержка уведомлений +/- 30 минут",
-        "notification_message": "дней осталось до"
+        "set_notifications_time_1": "Введите время в 24-часовом HH:MM формате для получения уведомлений. Используйте UTC+0:",
+        "set_notifications_time_2_failed_no_two_sections": "Отменено. Должно быть 2 секции, которые разделены двоеточиями!",
+        "set_notifications_time_2_failed_not_numbers": "Отменено. Часы и минуты должны быть целыми числами!",
+        "set_notifications_time_2_failed_something_went_wrong": "Отменено. Что-то пошло не так, напишите мне: @jakefish",
+        "set_notifications_time_2_failed_out_of_limits": "Отменено. Часы должны быть больше 0 и меньше 24, а минуты больше 0 и меньше 60!",
+        "set_notifications_time_2_success": "Успешно. Время получения уведомлений изменено! Задержка уведомлений +/- 30 минут",
+        "notification_message": "дней осталось до",
+        "update_message": "Бот был обновлен. Были изменены ошибки в словах, а также добавлена функция /get_notifications_time. Чтобы посмотреть, что есть нового, используйте /help.",
+        "get_notifications_time": "Ваше время для получения уведомлений по всем событиям: "
     }
 }
 

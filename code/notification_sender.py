@@ -25,6 +25,8 @@ class UsersNotifier():
         The function works every day.
         The function goes sleep for 1 day after work finish 
         """
+        await self._notify_about_bot_update()
+
         while True:
             
             current_time = self._get_current_time()
@@ -59,10 +61,21 @@ class UsersNotifier():
 
             await asyncio.sleep(1800)
 
+    async def _notify_about_bot_update(self) -> None:
+        """
+        Notifying all users about the bot update.
+        """
+        users_data = self.users_handler.get_users_data()
+
+        for user_data in users_data:
+            _, user_telgegram_id, _, user_language = user_data
+
+            await self.bot.send_message(user_telgegram_id, MESSAGES[user_language]["update_message"])
+
     def _get_current_time(self) -> str:
         moment = datetime.now()
-        current_hour = str(moment.hour).ljust(2, "0")
-        current_minute = str(moment.minute).ljust(2, "0")
+        current_hour = str(moment.hour).rjust(2, "0")
+        current_minute = str(moment.minute).rjust(2, "0")
         current_time = f"{current_hour}:{current_minute}"
 
         return current_time
@@ -75,16 +88,17 @@ class UsersNotifier():
         new_time = ""
 
         if minute < 15:
-            new_hour = str(hour).ljust(2, "0")     
+            new_hour = str(hour).rjust(2, "0")     
             new_time = f"{hour}:00"
         
         elif minute >= 45: 
             new_hour = str((hour + 1) % 24)
-            new_hour = new_hour.ljust(2, "0") 
+            new_hour = new_hour.rjust(2, "0") 
             new_time = f"{new_hour}:00"
 
         else:
-            new_time = f"{hour}:30"
+            new_hour = str(hour).rjust(2, "0")     
+            new_time = f"{new_hour}:30"
 
         return new_time
         
