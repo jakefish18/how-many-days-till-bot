@@ -7,8 +7,9 @@ import asyncio
 from datetime import date, datetime
 from aiogram import Bot
 
-from database_handler import UsersHandler, EventsHandler
+from config import SERVER_TIME_ZONE
 from texts import RESPONSES
+from database_handler import UsersHandler, EventsHandler
 
 
 class UsersNotifier():
@@ -30,22 +31,23 @@ class UsersNotifier():
         while True:
             current_time = self._get_current_time()
             rounded_time = self._get_rounded_time(current_time)
+            rounded_time = self._convert_to_utc_0(rounded_time, SERVER_TIME_ZONE)
             users_data = self.users_handler.get_users_to_be_notified(rounded_time)
 
             for user_data in users_data:
-                user_id, user_telegram_id, _, user_language = user_data
-                user_goals, _ = self.events_handler.get_user_events(user_id)
+                user_id, user_telegram_id, _, user_language, _ = user_data
+                user_events, _ = self.events_handler.get_user_events(user_id)
 
-                for user_goal in user_goals:
-                    user_goal_end_date = user_goal[2]
-                    difference = self._get_diff(user_goal_end_date)
+                for user_event in user_events:
+                    user_event_end_date = user_event[2]
+                    difference = self._get_diff(user_event_end_date)
 
                     if difference < 0: # If event was passed.
-                        user_goal_description = user_goal[1]
-                        result = self.events_handler.del_event(user_id, user_goal_description)
+                        user_event_description = user_event[1]
+                        result = self.events_handler.del_event(user_id, user_event_description)
 
                         if result:
-                            print(f"Goal {user_goal_description} of user {user_id} was deleted!")
+                            print(f"Goal {user_event_description} of user {user_id} was deleted!")
                         
                         else:
                             print(f"Something went wrong when programm tried to deleted passed event!")
@@ -53,7 +55,7 @@ class UsersNotifier():
                     else:
                         print(user_language)
                         mid_message = RESPONSES[user_language][23]
-                        notification_message = f"{difference} {mid_message} '{user_goal[1]}'!"  
+                        notification_message = f"{difference} {mid_message} '{user_event[1]}'!"  
 
                         print(f"{user_telegram_id}: {notification_message}")
                         await self.bot.send_message(user_telegram_id, notification_message)
@@ -67,7 +69,7 @@ class UsersNotifier():
         users_data = self.users_handler.get_users_data()
 
         for user_data in users_data:
-            _, user_telgegram_id, _, user_language = user_data
+            _, user_telgegram_id, _, user_language, _ = user_data
 
             await self.bot.send_message(user_telgegram_id, RESPONSES[user_language][24])
 
@@ -78,6 +80,43 @@ class UsersNotifier():
         current_time = f"{current_hour}:{current_minute}"
 
         return current_time
+
+    def _convert_to_utc_0(self, entered_time: str, from_utc: str):
+        """
+        Converting entered time to UTC+00:00
+        """
+        entered_time_hour, entered_time_minute = map(int, entered_time.split(":"))
+
+        operand = from_utc[3]
+        from_utc_dif = from_utc.split(operand)[-1]
+        from_utc_hour_dif, from_utc_minute_dif = map(int, from_utc_dif.split(":"))    
+        
+        if operand == "-":
+            entered_time_hour = (entered_time_hour + from_utc_hour_dif) % 24
+            entered_time_minute += from_utc_minute_dif
+            entered_time_hour += entered_time_minute // 60
+            entered_time_minute %= 24
+            entered_time_minute %= 60
+
+        else:
+            entered_time_hour = (entered_time_hour - from_utc_hour_dif) % 24
+
+            if entered_time_hour < 0:
+                entered_time_hour = 24 + entered_time_hour
+
+            entered_time_minute -= from_utc_minute_dif
+
+            if entered_time_minute < 0:
+                entered_time_hour -= 1
+                entered_time_minute = 60 + entered_time_minute
+
+            entered_time_hour %= 24
+            entered_time_minute %= 60
+
+        entered_time_hour = str(entered_time_hour).rjust(2, "0")
+        entered_time_minute = str(entered_time_minute).rjust(2, "0")
+
+        return f"{entered_time_hour}:{entered_time_minute}"
 
     def _get_rounded_time(self, time: str) -> str:
         """

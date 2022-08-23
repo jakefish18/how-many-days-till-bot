@@ -3,24 +3,33 @@ Menu with buttons.
 
 Abbreviations:
     btn - button
+    kbm - keyboard markup
 """
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
-from texts import BUTTON_TITLES
+from texts import MAIN_MENU_BUTTONS_TITLES, TIME_ZONES_BUTTONS_TITLES
 
-ru_btn_start = KeyboardButton(BUTTON_TITLES["ru"][1])
-ru_btn_help = KeyboardButton(BUTTON_TITLES["ru"][2])
-ru_btn_add_event = KeyboardButton(BUTTON_TITLES["ru"][3])
-ru_btn_del_event = KeyboardButton(BUTTON_TITLES["ru"][4])
-ru_btn_list_events = KeyboardButton(BUTTON_TITLES["ru"][5])
-ru_btn_set_notifications_time = KeyboardButton(BUTTON_TITLES["ru"][6])
-ru_btn_get_notifications_time = KeyboardButton(BUTTON_TITLES["ru"][7])
-ru_btn_cancel = KeyboardButton(BUTTON_TITLES["ru"][8])
+# Main menu markup.
+kbm_main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
 
-ru_menu = ReplyKeyboardMarkup(resize_keyboard=True)
-ru_menu.add(ru_btn_start, ru_btn_help)
-ru_menu.add(ru_btn_add_event, ru_btn_del_event)
-ru_menu.add(ru_btn_list_events, ru_btn_cancel)
-ru_menu.add(ru_btn_set_notifications_time)
-ru_menu.add(ru_btn_get_notifications_time)
+for row in MAIN_MENU_BUTTONS_TITLES:
+    keyboard_row_buttons = []
+
+    for command in row:
+        btn_command = KeyboardButton(command)
+        keyboard_row_buttons.append(btn_command)
+    
+    kbm_main_menu.add(*keyboard_row_buttons)
+
+# The time zone selection menu markup.
+kbm_time_zone_selection = ReplyKeyboardMarkup(resize_keyboard=True)
+
+for row in TIME_ZONES_BUTTONS_TITLES:
+    keyboard_row_buttons = []
+
+    for time_zone in row:
+        btn_time_zone = KeyboardButton(time_zone)
+        keyboard_row_buttons.append(btn_time_zone)
+    
+    kbm_time_zone_selection.add(*keyboard_row_buttons)

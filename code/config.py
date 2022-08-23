@@ -14,8 +14,11 @@ Database configs:
 # Bot configs.
 BOT_TOKEN = ""
 
-# Database configs.e
+# Database configs.
 DATABASE_HOST = "127.0.0.1"
 DATABASE_NAME = ""
 DATABASE_USERNAME = ""
 DATABASE_PASSWORD = ""
+
+#Server configs.
+SERVER_TIME_ZONE = "UTC+03:00"
