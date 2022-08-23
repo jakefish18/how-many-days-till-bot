@@ -8,7 +8,7 @@ from datetime import date, datetime
 from aiogram import Bot
 
 from database_handler import UsersHandler, EventsHandler
-from config import MESSAGES
+from texts import RESPONSES
 
 
 class UsersNotifier():
@@ -28,14 +28,13 @@ class UsersNotifier():
         await self._notify_about_bot_update()
 
         while True:
-            
             current_time = self._get_current_time()
             rounded_time = self._get_rounded_time(current_time)
             users_data = self.users_handler.get_users_to_be_notified(rounded_time)
 
             for user_data in users_data:
                 user_id, user_telegram_id, _, user_language = user_data
-                user_goals, is_user_events = self.events_handler.get_user_events(user_id)
+                user_goals, _ = self.events_handler.get_user_events(user_id)
 
                 for user_goal in user_goals:
                     user_goal_end_date = user_goal[2]
@@ -53,7 +52,7 @@ class UsersNotifier():
 
                     else:
                         print(user_language)
-                        mid_message = MESSAGES[user_language]["notification_message"]
+                        mid_message = RESPONSES[user_language][23]
                         notification_message = f"{difference} {mid_message} '{user_goal[1]}'!"  
 
                         print(f"{user_telegram_id}: {notification_message}")
@@ -70,7 +69,7 @@ class UsersNotifier():
         for user_data in users_data:
             _, user_telgegram_id, _, user_language = user_data
 
-            await self.bot.send_message(user_telgegram_id, MESSAGES[user_language]["update_message"])
+            await self.bot.send_message(user_telgegram_id, RESPONSES[user_language][24])
 
     def _get_current_time(self) -> str:
         moment = datetime.now()

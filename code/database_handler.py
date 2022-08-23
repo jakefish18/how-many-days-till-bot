@@ -92,7 +92,7 @@ class UsersHandler(TableHandler):
     Columns description:
         user_id                 : user_id to link data from different tables : serial
         user_telegram_id        : user telegram id to send messages          : int
-        user_notifications_time : selected time by user for notifies         : text   : default 12:00 UTC+0 
+        user_notifications_time : selected time by user for notifies         : text
         user_language           : user selected language                     : text
     """
 
@@ -183,7 +183,7 @@ class EventsHandler(TableHandler):
 
         self.connect()
 
-    def add_goal(self, user_id: str, user_event: str, user_event_end_date: str) -> bool:
+    def add_event(self, user_id: str, user_event: str, user_event_end_date: str) -> bool:
         """
         Adding new user event.
         Function have check that data was inserted before and returns bool of success adding. 
@@ -200,9 +200,9 @@ class EventsHandler(TableHandler):
                 (user_id, user_event, user_event_end_date)\
                     VALUES ('{user_id}', '{user_event}', '{user_event_end_date}')\
                         RETURNING user_id, user_event, user_event_end_date"
-            added_row, success = self.execute_table_update_command(table_update_command)
+            added_row, _ = self.execute_table_update_command(table_update_command)
 
-            return success # Insert result returning.
+            return True # Event has been added successfully.
 
     def del_event(self, user_id: str, user_event: str) -> bool:
         """

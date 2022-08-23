@@ -2,12 +2,13 @@
 Bot launching and commands setting up.
 
 Bot commands:
-    /start               : bot starting and getting info about bot 
-    /help                : getting info about bot
-    /add_event           : adding new event to be notified about every day
-    /del_event           : deleteing event
-    /list_events         : printing list of all added events
-    /set_notifies_time   : setting time to get notifies every day
+    /start                  : bot starting and getting info about bot 
+    /help                   : getting info about bot
+    /add_event              : adding new event to be notified about every day
+    /del_event              : deleteing event
+    /list_events            : printing list of all added events
+    /set_notifications_time : setting time to get notifies every day
+    /get_notifications_time : get the notifcations time 
 
 Abbreviations:
     chk - check
@@ -24,7 +25,9 @@ from aiogram.utils import executor
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from config import BOT_TOKEN, MESSAGES
+from config import BOT_TOKEN
+from texts import RESPONSES
+from markups import ru_menu
 from database_handler import UsersHandler, EventsHandler
 from notification_sender import UsersNotifier
 
@@ -72,7 +75,11 @@ async def register_user(message : types.Message):
     print(user_language, success)
 
     if success: # Check for unexpected cases.
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["start"])
+        await bot.send_message(
+            user_telegram_id, 
+            RESPONSES[user_language][1],
+            reply_markup=ru_menu
+        )
 
     else:
         print("CRITICAL!!! Unexpected error")
@@ -87,7 +94,7 @@ async def send_help_info(message: types.Message):
     print(user_language, success)
 
     if success: # Check for unexpected cases.
-        await bot.send_message(telegram_id, MESSAGES[user_language]["help"])
+        await bot.send_message(telegram_id, RESPONSES[user_language][2])
 
     else:
         print("CRITICAL!!! Unexpected error")
@@ -105,10 +112,10 @@ async def cancel_command(message: types.Message, state: FSMContext):
     user_language = user_data[-1]
 
     await state.finish()
-    await bot.send_message(user_telegram_id, MESSAGES[user_language]["cancel"])
+    await bot.send_message(user_telegram_id, RESPONSES[user_language][3])
 
 @bot_dispatcher.message_handler(commands=["add_event"])
-async def add_event_part_1(message: types.Message):
+async def add_event_stage_1(message: types.Message):
     """
     Adding new user event.
     Bot requests event description in first stage.
@@ -118,10 +125,10 @@ async def add_event_part_1(message: types.Message):
     user_language = user_data[-1]
 
     await Form.st_add_event_description.set()
-    await bot.send_message(telegram_id, MESSAGES[user_language]["add_event_1"])
+    await bot.send_message(telegram_id, RESPONSES[user_language][4])
 
 @bot_dispatcher.message_handler(state=Form.st_add_event_description)
-async def add_event_part_2(message: types.Message, state: FSMContext):
+async def add_event_stage_2(message: types.Message, state: FSMContext):
     """
     Adding new user event.
     The bot requests the event end date in the second stage.
@@ -133,11 +140,11 @@ async def add_event_part_2(message: types.Message, state: FSMContext):
 
     users_events[telegram_id] = message.text
     await state.finish()
-    await bot.send_message(telegram_id, MESSAGES[user_language]["add_event_2"])
+    await bot.send_message(telegram_id, RESPONSES[user_language][5])
     await Form.st_add_event_end_date.set()
 
 @bot_dispatcher.message_handler(state=Form.st_add_event_end_date)
-async def add_event_part_3(message: types.Message, state: FSMContext):
+async def add_event_stage_3(message: types.Message, state: FSMContext):
     """
     Adding new user event.
     The bot inserts new user event into table.
@@ -152,29 +159,28 @@ async def add_event_part_3(message: types.Message, state: FSMContext):
     await state.finish()
 
     if not chk_number_of_sections(user_event_date, '.', 3):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_no_three_sections"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][6])
 
     elif not chk_is_numbers(user_event_date, '.'):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_not_numbers"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][7])
 
     elif not chk_month_limit(user_event_date, '.'):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_out_of_limits"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][8])
 
     elif not chk_date_in_future(user_event_date):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_date_in_past"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][9])
 
     else:
-        is_event_added = user_events_handler.add_goal(user_id, user_event, user_event_date)
-
+        is_event_added = user_events_handler.add_event(user_id, user_event, user_event_date)
 
         if is_event_added:
-            await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_success"])
+            await bot.send_message(user_telegram_id, RESPONSES[user_language][11])
 
         else:
-            await bot.send_message(user_telegram_id, MESSAGES[user_language]["add_event_3_failed_already_in"])
+            await bot.send_message(user_telegram_id, RESPONSES[user_language][10])
 
 @bot_dispatcher.message_handler(commands=["del_event"])
-async def del_event_part_1(message: types.Message):
+async def del_event_stage_1(message: types.Message):
     """
     Adding new user event.
     The bot requests the goal description in the second stage.
@@ -184,7 +190,7 @@ async def del_event_part_1(message: types.Message):
     user_language = user_data[-1]
  
     await Form.st_del_event.set()
-    await bot.send_message(user_telegram_id, MESSAGES[user_language]["del_event_1"])
+    await bot.send_message(user_telegram_id, RESPONSES[user_language][12])
 
 @bot_dispatcher.message_handler(state=Form.st_del_event)
 async def del_event_part_2(message: types.Message, state: FSMContext):
@@ -202,11 +208,11 @@ async def del_event_part_2(message: types.Message, state: FSMContext):
     await state.finish()
 
     if not is_user_event:
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["del_event_2_failed_not_in"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][13])
 
     else:
         user_events_handler.del_event(user_id, user_event_description)
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["del_event_2_success"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][14])
 
 @bot_dispatcher.message_handler(commands=["list_events"])
 async def list_goals(message: types.Message):
@@ -223,12 +229,13 @@ async def list_goals(message: types.Message):
 
     user_events, is_user_events = user_events_handler.get_user_events(user_id)
     
-    if is_user_events:
-        beutified_user_events = beautify_events(user_events)
-        await bot.send_message(user_telegram_id, beutified_user_events)
+    if is_user_events: 
+        beautified_user_events = beautify_events(user_events)
+        message_to_send = RESPONSES[user_language][16] + beautified_user_events
+        await bot.send_message(user_telegram_id, message_to_send)
 
     else:
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["list_events_failed_no_events"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][15])
 
 @bot_dispatcher.message_handler(commands=["set_notifications_time"])
 async def set_notifications_time_part_1(message: types.Message):
@@ -242,7 +249,7 @@ async def set_notifications_time_part_1(message: types.Message):
     user_id, _, _, user_language = user_data
 
     await Form.st_notifies_time.set()
-    await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_1"])
+    await bot.send_message(user_telegram_id, RESPONSES[user_language][17])
 
 @bot_dispatcher.message_handler(state=Form.st_notifies_time)
 async def set_notifications_time_part_2(message: types.Message, state: FSMContext):
@@ -255,23 +262,21 @@ async def set_notifications_time_part_2(message: types.Message, state: FSMContex
     await state.finish()
 
     if not chk_number_of_sections(new_user_notifications_time, ":", 2):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_no_two_sections"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][18])
 
     elif not chk_is_numbers(new_user_notifications_time, ":"):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_not_numbers"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][19])
 
     elif not chk_time_limit(new_user_notifications_time, ":"):
-        await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_out_of_limits"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][20])
 
     else:
         new_user_notifications_time = get_rounded_time(new_user_notifications_time)
-        success = users_handler.update_user_notifications_time(user_telegram_id, new_user_notifications_time)
+        _ = users_handler.update_user_notifications_time(user_telegram_id, new_user_notifications_time) 
+        # The returning element couldn't be False,
+        # so it doesnt't need to be checked.
 
-        if not success:
-            await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_failed_something_went_wrong"])
-
-        else:
-            await bot.send_message(user_telegram_id, MESSAGES[user_language]["set_notifications_time_2_success"])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][21])
 
 @bot_dispatcher.message_handler(commands=["get_notifications_time"])
 async def get_notifications_time(message: types.Message):
@@ -280,7 +285,12 @@ async def get_notifications_time(message: types.Message):
     print(user_data)
     _, _, user_notifications_time, user_language = user_data 
 
-    await bot.send_message(user_telegram_id, MESSAGES[user_language]["get_notifications_time"] + user_notifications_time)
+    message_to_send = RESPONSES[user_language][22] + user_notifications_time
+    await bot.send_message(user_telegram_id, message_to_send)
+
+@bot_dispatcher.message_handler(commands=["set_timezone"])
+async def set_timezone(message: types.Message):
+    pass
 
 async def on_startup(bot_dispatcher: Dispatcher):
     users_notifier = UsersNotifier(bot)
@@ -345,8 +355,10 @@ def chk_month_limit(date: str, separator: str) -> bool:
 
     day, month, year = map(int, date.split(separator))
 
-    if month == 2 and ((year % 4 == 0) and (year % 100 != 0) or (year % 400 == 0)): # Specific сheck for February.
-        month_limits[2] = 29 # Editing max limit in a leap year for February.
+    # The specific сheck for February.
+    if month == 2 and ((year % 4 == 0) and (year % 100 != 0) or (year % 400 == 0)): 
+        # Editing the max limit in a leap year for February.
+        month_limits[2] = 29 
 
     if month < 1 or month > 12:
         return False
@@ -372,13 +384,14 @@ def chk_date_in_future(user_event_date: str) -> bool:
 
 def beautify_events(user_events: list) -> str:
     """
-    Adding serial number before every event for the sending.
+    Adding the serial number before each event for the sending.
     """
     beautified_events = ""
     counter = 1
 
     for user_event in user_events:
-        #user_event[1] is event_description and user_event[2] is event end date.
+        # user_event[1] is the event description and 
+        # user_event[2] is the event end date.
         beautified_events += f"{counter}. {user_event[1]} {user_event[2]}" + '\n' 
         counter += 1
 
