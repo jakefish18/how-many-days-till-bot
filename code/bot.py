@@ -26,10 +26,15 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from typing import List
 
 from config import BOT_TOKEN
-from texts import RESPONSES, TIME_ZONES_BUTTONS_TITLES
-from markups import kbm_main_menu, kbm_time_zone_selection
+from texts import LANGUAGES_BUTTONS_TITLES, RESPONSES, TIME_ZONES_BUTTONS_TITLES
+from markups import (
+    kbm_main_menu,
+    kbm_time_zone_selection,
+    kbm_language_selection
+)
 from database_handler import UsersHandler, EventsHandler
 from notification_sender import UsersNotifier
 
@@ -56,6 +61,7 @@ class Form(StatesGroup):
     st_del_event = State()
     st_set_notifies_time = State()
     st_set_time_zone = State()
+    st_set_language = State()
 
 
 @bot_dispatcher.message_handler(commands=["start"])
@@ -331,7 +337,7 @@ async def set_time_zone_stage_2(message: types.Message, state: FSMContext):
 
     await state.finish()
 
-    if not chk_is_time_zone(new_user_time_zone):
+    if not chk_is_element_in_keyboard(new_user_time_zone, TIME_ZONES_BUTTONS_TITLES):
         await bot.send_message(
             user_telegram_id, 
             RESPONSES[user_language][27],
@@ -354,6 +360,56 @@ async def get_time_zone(message: types.Message):
     _, _, _, user_language, user_time_zone = user_data 
 
     message_to_send = RESPONSES[user_language][29] + user_time_zone
+    await bot.send_message(user_telegram_id, message_to_send)
+
+@bot_dispatcher.message_handler(commands=["set_language"])
+async def set_language_stage_1(message: types.Message):
+    user_telegram_id = message.from_user.id
+    user_data, _ = users_handler.get_user_data(user_telegram_id)
+    print(f"Set language {user_data}")
+    user_language = user_data[-2]
+
+    await Form.st_set_language.set()
+    await bot.send_message(
+        user_telegram_id, 
+        RESPONSES[user_language][30],
+        reply_markup=kbm_language_selection
+    )
+
+@bot_dispatcher.message_handler(state=[Form.st_set_language])
+async def set_language_stage_2(message: types.Message, state: FSMContext):
+    user_telegram_id = message.from_user.id
+    user_data, _ = users_handler.get_user_data(user_telegram_id)
+    print(f"Set language stage 2 {user_data}")
+    user_language = user_data[-2]
+
+    new_user_language = message.text
+
+    await state.finish()
+
+    if not chk_is_element_in_keyboard(new_user_language, LANGUAGES_BUTTONS_TITLES):
+        await bot.send_message(
+            user_telegram_id, 
+            RESPONSES[user_language][31],
+            reply_markup=kbm_main_menu
+        )
+    
+    else:
+        users_handler.update_user_language(user_telegram_id, new_user_language)
+        await bot.send_message(
+            user_telegram_id,
+            RESPONSES[user_language][32],
+            reply_markup=kbm_main_menu
+        )
+
+@bot_dispatcher.message_handler(commands=["get_language"])
+async def get_language(message: types.Message):
+    user_telegram_id = message.from_user.id
+    user_data, _ = users_handler.get_user_data(user_telegram_id)
+    print(f"Get language {user_data}")
+    _, _, _, user_language, _ = user_data 
+
+    message_to_send = RESPONSES[user_language][33] + user_language
     await bot.send_message(user_telegram_id, message_to_send)
 
 async def on_startup(bot_dispatcher: Dispatcher):
@@ -446,12 +502,12 @@ def chk_date_in_future(user_event_date: str) -> bool:
 
     return user_event_date > today_date
 
-def chk_is_time_zone(time_zone: str) -> bool:
+def chk_is_element_in_keyboard(element: str, keyboard: List[List]) -> bool:
     """
-    Checking that the entered time zone exists in TIME_ZONES_BUTTON_TITLES. 
+    Checking that the entered element exists in keyboard. 
     """ 
-    for row in TIME_ZONES_BUTTONS_TITLES:
-        if time_zone in row:
+    for row in keyboard:
+        if element in row:
             return True
 
     return False

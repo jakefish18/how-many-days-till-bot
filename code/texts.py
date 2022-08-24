@@ -50,6 +50,10 @@ The bot responses ids:
     28 - response for the /set_time_zone command,
         that the entered time zone has been successfully added 
     29 - the header for the /get_time_zone command response message
+    30 - response the the /set_language command (language request)
+    31 - error response for the /set_language command,
+        because user have entered not Russian or English
+    32 - the header for the /get_language command response message 
 
 Bot have two languages: English and Russian.
 """
@@ -101,7 +105,12 @@ RUSSIAN_RESPONSES = {
     27: "Ошибка. Такого часвого пояса не существует! " + 
         "Используйте часовые пояса из встроенной клавиатуры.",
     28: "Успешно. Ваш часовой пояс был изменен!",
-    29: "Ваш часовой пояс: "
+    29: "Ваш выбранный часовой пояс: ",
+    30: "Введите язык:",
+    31: "Ошибка. Такого языка нет в списке!" +
+        "Используйте языки из встроенной клавиатуры.",
+    32: "Успешно. Ваш язык был обновлен!",
+    33: "Ваш выбранный язык: "
 }
 
 ENGLISH_RESPONSES = {} # @AskarBink, we've waited you so long.
@@ -117,7 +126,8 @@ MAIN_MENU_BUTTONS_TITLES = [
     ["/list_events", "/cancel"],
     ["/set_notifications_time"], 
     ["/get_notifications_time"],
-    ["/set_time_zone", "/get_time_zone"]
+    ["/set_time_zone", "/get_time_zone"],
+    ["/set_language", "/get_language"]
 ]
 
 TIME_ZONES_BUTTONS_TITLES = [
@@ -134,4 +144,9 @@ TIME_ZONES_BUTTONS_TITLES = [
     ["UTC+09:30", "UTC+10:00", "UTC+10:30"],
     ["UTC+11:00", "UTC+12:00", "UTC+12:45"],
     ["UTC+13:00", "UTC+14:00"]
+]
+
+LANGUAGES_BUTTONS_TITLES = [
+    ["en"],
+    ["ru"]
 ]

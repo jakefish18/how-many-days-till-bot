@@ -9,6 +9,7 @@ from aiogram import Bot
 
 from config import SERVER_TIME_ZONE
 from texts import RESPONSES
+from markups import kbm_main_menu
 from database_handler import UsersHandler, EventsHandler
 
 
@@ -58,7 +59,11 @@ class UsersNotifier():
                         notification_message = f"{difference} {mid_message} '{user_event[1]}'!"  
 
                         print(f"{user_telegram_id}: {notification_message}")
-                        await self.bot.send_message(user_telegram_id, notification_message)
+                        await self.bot.send_message(
+                            user_telegram_id,
+                            notification_message,
+                            reply_markup=kbm_main_menu
+                        )
 
             await asyncio.sleep(1800)
 
@@ -71,7 +76,11 @@ class UsersNotifier():
         for user_data in users_data:
             _, user_telgegram_id, _, user_language, _ = user_data
 
-            await self.bot.send_message(user_telgegram_id, RESPONSES[user_language][24])
+            await self.bot.send_message(
+                user_telgegram_id,
+                RESPONSES[user_language][24],
+                reply_markup=kbm_main_menu
+            )
 
     def _get_current_time(self) -> str:
         moment = datetime.now()

@@ -174,7 +174,7 @@ class UsersHandler(TableHandler):
     def update_user_time_zone(self, user_telegram_id: str,
             time_zone: str
         ) -> bool:
-        """Changing the user time zone."""
+        """Changing user time zone."""
         update_command = f"UPDATE {self.table_name}\
             SET user_time_zone='{time_zone}'\
                 WHERE user_telegram_id='{user_telegram_id}'\
@@ -182,6 +182,19 @@ class UsersHandler(TableHandler):
         self.execute_table_update_command(update_command)
 
         return True
+    
+    def update_user_language(self, user_telegram_id: str, 
+            language: str
+        ) -> bool:
+        """Changing user language."""
+        update_command = f"UPDATE {self.table_name}\
+            SET user_language='{language}'\
+                WHERE user_telegram_id='{user_telegram_id}'\
+                    RETURNING user_language"
+        self.execute_table_update_command(update_command)
+
+        return True
+
 
 class EventsHandler(TableHandler):
     """
