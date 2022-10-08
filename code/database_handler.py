@@ -7,7 +7,7 @@ Tables and their columns:
     users:
         user_id
         user_telegram_id
-        user_notifies_time 
+        user_notifications_time 
         user_language
         user_time_zone
 
@@ -17,6 +17,11 @@ Tables and their columns:
         user_event_end_date
 
 PostgreSQL used as DBMS.
+
+Database init configs:
+    dbname: ***REMOVED***
+    owner: ***REMOVED***
+    encoding: UTF-8
 """
 
 from typing import Tuple, List

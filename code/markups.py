@@ -9,7 +9,7 @@ Abbreviations:
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 from texts import (
-    MAIN_MENU_BUTTONS_TITLES,
+    MAIN_BUTTONS_TITLES,
     TIME_ZONES_BUTTONS_TITLES,
     LANGUAGES_BUTTONS_TITLES
 )
@@ -18,7 +18,7 @@ from texts import (
 # Main menu markup.
 kbm_main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
 
-for row in MAIN_MENU_BUTTONS_TITLES:
+for row in MAIN_BUTTONS_TITLES:
     keyboard_row_buttons = []
 
     for command in row:

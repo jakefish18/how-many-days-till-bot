@@ -72,7 +72,7 @@ class UsersNotifier():
         Notifying all users about the bot update.
         """
         users_data = self.users_handler.get_users_data()
-
+        
         for user_data in users_data:
             _, user_telgegram_id, _, user_language, _ = user_data
 

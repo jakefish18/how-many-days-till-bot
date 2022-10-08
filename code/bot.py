@@ -230,7 +230,7 @@ async def del_event_stage_2(message: types.Message, state: FSMContext):
         await bot.send_message(user_telegram_id, RESPONSES[user_language][14])
 
 @bot_dispatcher.message_handler(commands=["list_events"])
-async def list_goals(message: types.Message):
+async def list_events(message: types.Message):
     """
     Send all events list to the user.
     Message format:
@@ -411,6 +411,46 @@ async def get_language(message: types.Message):
 
     message_to_send = RESPONSES[user_language][33] + user_language
     await bot.send_message(user_telegram_id, message_to_send)
+
+@bot_dispatcher.message_handler()
+async def handle_text(message: types.Message):
+    """
+    Handling commands, which writen with usual text.
+    Example: "Информация про бота" = \help
+    """
+
+    if message.text == "📝Добавить событие":
+        await add_event_stage_1(message)
+
+    elif message.text == "🗑Удалить событие":
+        await del_event_stage_1(message)
+
+    elif message.text == "🗒Список событий":
+        await list_events(message)
+    
+    elif message.text == "❓Инфо про бота":
+        await send_help_info(message)
+    
+    elif message.text == "🔔Изменить время уведомлений":
+        await set_notifications_time_stage_1(message)
+    
+    elif message.text == "❔Узнать время уведомлений":
+        await get_notifications_time(message)
+    
+    elif message.text == "🌐Изменить временную зону":
+        await set_time_zone_stage_1(message)
+    
+    elif message.text == "❔Узнать временную зону":
+        await get_time_zone(message)
+    
+    elif message.text == "🏳️Изменить язык":
+        await set_language_stage_1(message)
+    
+    elif message.text == "❔Узнать язык":
+        await get_language(message)
+
+    elif message.text == "❌Отмена":
+        await cancel_command(message)
 
 async def on_startup(bot_dispatcher: Dispatcher):
     users_notifier = UsersNotifier(bot)
