@@ -7,46 +7,45 @@ Abbreviations:
 """
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from typing import List
 
 from texts import (
     MAIN_BUTTONS_TITLES,
-    TIME_ZONES_BUTTONS_TITLES,
-    LANGUAGES_BUTTONS_TITLES
+    TIME_ZONE_BUTTONS_TITLES,
+    LANGUAGE_BUTTONS_TITLES,
+    NOTIFICATIONS_TIME_BUTTONS_TITLES
 )
 
 
-# Main menu markup.
-kbm_main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
+def generate_markup(keyboard_buttons_titles: List[List]) -> ReplyKeyboardMarkup:
+    """
+    Keyboard creation.
+    Generating keyboard markup by inputed list layout
+    Example:
 
-for row in MAIN_BUTTONS_TITLES:
-    keyboard_row_buttons = []
+    if we have such list
+    [['1', '2', '3'],
+     ['4', '5', '6']]
 
-    for command in row:
-        btn_command = KeyboardButton(command)
-        keyboard_row_buttons.append(btn_command)
-    
-    kbm_main_menu.add(*keyboard_row_buttons)
+    the result reply keyboard will be with the same layout
+    1 2 3
+    4 5 6
+    """
+    kbm = ReplyKeyboardMarkup()
 
-# The time zone selection menu markup.
-kbm_time_zone_selection = ReplyKeyboardMarkup(resize_keyboard=True)
+    for row in keyboard_buttons_titles:
+        keyboard_row_buttons = []
 
-for row in TIME_ZONES_BUTTONS_TITLES:
-    keyboard_row_buttons = []
+        for button_title in row:
+            button = KeyboardButton(button_title)
+            keyboard_row_buttons.append(button)
 
-    for time_zone in row:
-        btn_time_zone = KeyboardButton(time_zone)
-        keyboard_row_buttons.append(btn_time_zone)
-    
-    kbm_time_zone_selection.add(*keyboard_row_buttons)
+        kbm.add(*keyboard_row_buttons)
 
-# The language selection menu markup.
-kbm_language_selection = ReplyKeyboardMarkup(resize_keyboard=True)
+    return kbm
 
-for row in LANGUAGES_BUTTONS_TITLES:
-    keyboard_row_buttons = []
 
-    for language in row:
-        btn_language = KeyboardButton(language)
-        keyboard_row_buttons.append(language)
-
-    kbm_language_selection.add(*keyboard_row_buttons)
+kbm_main_menu = generate_markup(MAIN_BUTTONS_TITLES)
+kbm_time_zone_selection = generate_markup(TIME_ZONE_BUTTONS_TITLES)
+kbm_language_selection = generate_markup(LANGUAGE_BUTTONS_TITLES)
+kbm_notifications_time_selection = generate_markup(NOTIFICATIONS_TIME_BUTTONS_TITLES)

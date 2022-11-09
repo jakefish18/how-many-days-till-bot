@@ -8,7 +8,7 @@ Bot commands:
     /del_event              : deleteing event
     /list_events            : printing list of all added events
     /set_notifications_time : setting time to get notifies every day
-    /get_notifications_time : get the notifcations time 
+    /get_notifications_time : get the notifications time
     /set_time_zone          : set the user time zone 
     /get_time_zone          : get the user time zone 
 
@@ -25,15 +25,18 @@ from aiogram import Bot, types, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from typing import List
 
 from config import BOT_TOKEN
-from texts import LANGUAGES_BUTTONS_TITLES, RESPONSES, TIME_ZONES_BUTTONS_TITLES
+from texts import LANGUAGE_BUTTONS_TITLES, RESPONSES, TIME_ZONE_BUTTONS_TITLES
 from markups import (
+    generate_markup,
     kbm_main_menu,
     kbm_time_zone_selection,
-    kbm_language_selection
+    kbm_language_selection,
+    kbm_notifications_time_selection
 )
 from database_handler import UsersHandler, EventsHandler
 from notification_sender import UsersNotifier
@@ -48,7 +51,7 @@ user_events_handler = EventsHandler()
 users_events = {} 
 
 bot = Bot(BOT_TOKEN)
-bot_dispatcher  = Dispatcher(bot, storage=MemoryStorage())
+bot_dispatcher = Dispatcher(bot, storage=MemoryStorage())
 
 
 class Form(StatesGroup):
@@ -63,6 +66,34 @@ class Form(StatesGroup):
     st_set_time_zone = State()
     st_set_language = State()
 
+    states_list = [st_add_event_description, st_add_event_end_date, st_del_event,
+                   st_set_notifies_time, st_set_time_zone, st_set_language]
+
+@bot_dispatcher.message_handler(state="*", commands=["cancel"])
+@bot_dispatcher.message_handler(Text(equals="❌Отмена", ignore_case=True), state="*")
+async def cancel_command(message: types.Message, state: FSMContext):
+    """Canceling current command if command \cancel used or message text equals ❌Отмена."""
+    print("ENTERED")
+
+    user_telegram_id = message.from_user.id
+    user_data, _ = users_handler.get_user_data(user_telegram_id)
+    user_language = user_data[-2]
+    current_state = await state.get_state()
+
+    if current_state is None:
+        await bot.send_message(
+            user_telegram_id,
+            RESPONSES[user_language][25],
+            reply_markup=kbm_main_menu
+        )
+
+    else:
+        await state.finish()
+        await bot.send_message(
+            user_telegram_id,
+            RESPONSES[user_language][3],
+            reply_markup=kbm_main_menu
+        )
 
 @bot_dispatcher.message_handler(commands=["start"])
 async def register_user(message : types.Message):
@@ -105,29 +136,6 @@ async def send_help_info(message: types.Message):
 
     else:
         print("CRITICAL!!! Unexpected error")
-
-@bot_dispatcher.message_handler(state="*", commands=["cancel"])
-async def cancel_command(message: types.Message, state: FSMContext):
-    """Canceling current command."""
-    user_telegram_id = message.from_user.id
-    user_data, _ = users_handler.get_user_data(user_telegram_id)
-    user_language = user_data[-2]
-    current_state = await state.get_state()
-
-    if current_state is None:
-        await bot.send_message(
-            user_telegram_id, 
-            RESPONSES[user_language][25],
-            reply_markup=kbm_main_menu
-        )
-
-    else:
-        await state.finish()
-        await bot.send_message(
-            user_telegram_id, 
-            RESPONSES[user_language][3],
-            reply_markup=kbm_main_menu
-        )
 
 @bot_dispatcher.message_handler(commands=["add_event"])
 async def add_event_stage_1(message: types.Message):
@@ -203,9 +211,18 @@ async def del_event_stage_1(message: types.Message):
     user_telegram_id = message.from_user.id
     user_data, _ = users_handler.get_user_data(user_telegram_id)
     user_language = user_data[-2]
- 
-    await Form.st_del_event.set()
-    await bot.send_message(user_telegram_id, RESPONSES[user_language][12])
+
+    user_events, is_user_events = user_events_handler.get_user_events(user_data[0])
+
+    if not user_events:
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][15], reply_markup=kbm_main_menu)
+
+    else:
+        user_events_descriptions = [[user_event[1]] for user_event in user_events]
+        kbm_user_events = generate_markup([["❌Отмена"]] + user_events_descriptions)
+
+        await Form.st_del_event.set()
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][12], reply_markup=kbm_user_events)
 
 @bot_dispatcher.message_handler(state=Form.st_del_event)
 async def del_event_stage_2(message: types.Message, state: FSMContext):
@@ -223,11 +240,11 @@ async def del_event_stage_2(message: types.Message, state: FSMContext):
     await state.finish()
 
     if not is_user_event:
-        await bot.send_message(user_telegram_id, RESPONSES[user_language][13])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][13], reply_markup=kbm_main_menu)
 
     else:
         user_events_handler.del_event(user_id, user_event_description)
-        await bot.send_message(user_telegram_id, RESPONSES[user_language][14])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][14], reply_markup=kbm_main_menu)
 
 @bot_dispatcher.message_handler(commands=["list_events"])
 async def list_events(message: types.Message):
@@ -264,7 +281,7 @@ async def set_notifications_time_stage_1(message: types.Message):
     user_language = user_data[-2]
 
     await Form.st_set_notifies_time.set()
-    await bot.send_message(user_telegram_id, RESPONSES[user_language][17])
+    await bot.send_message(user_telegram_id, RESPONSES[user_language][17], reply_markup=kbm_notifications_time_selection)
 
 @bot_dispatcher.message_handler(state=Form.st_set_notifies_time)
 async def set_notifications_time_stage_2(message: types.Message, state: FSMContext):
@@ -277,13 +294,13 @@ async def set_notifications_time_stage_2(message: types.Message, state: FSMConte
     await state.finish()
 
     if not chk_number_of_sections(new_user_notifications_time, ":", 2):
-        await bot.send_message(user_telegram_id, RESPONSES[user_language][18])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][18], reply_markup=kbm_main_menu)
 
     elif not chk_is_numbers(new_user_notifications_time, ":"):
-        await bot.send_message(user_telegram_id, RESPONSES[user_language][19])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][19], reply_markup=kbm_main_menu)
 
     elif not chk_time_limit(new_user_notifications_time, ":"):
-        await bot.send_message(user_telegram_id, RESPONSES[user_language][20])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][20], reply_markup=kbm_main_menu)
 
     else:
         new_user_notifications_time = get_rounded_time(
@@ -298,7 +315,7 @@ async def set_notifications_time_stage_2(message: types.Message, state: FSMConte
             new_user_notifications_time
         ) 
 
-        await bot.send_message(user_telegram_id, RESPONSES[user_language][21])
+        await bot.send_message(user_telegram_id, RESPONSES[user_language][21], reply_markup=kbm_main_menu)
 
 @bot_dispatcher.message_handler(commands=["get_notifications_time"])
 async def get_notifications_time(message: types.Message):
@@ -337,7 +354,7 @@ async def set_time_zone_stage_2(message: types.Message, state: FSMContext):
 
     await state.finish()
 
-    if not chk_is_element_in_keyboard(new_user_time_zone, TIME_ZONES_BUTTONS_TITLES):
+    if not chk_is_element_in_keyboard(new_user_time_zone, TIME_ZONE_BUTTONS_TITLES):
         await bot.send_message(
             user_telegram_id, 
             RESPONSES[user_language][27],
@@ -364,17 +381,20 @@ async def get_time_zone(message: types.Message):
 
 @bot_dispatcher.message_handler(commands=["set_language"])
 async def set_language_stage_1(message: types.Message):
+
     user_telegram_id = message.from_user.id
     user_data, _ = users_handler.get_user_data(user_telegram_id)
     print(f"Set language {user_data}")
     user_language = user_data[-2]
 
-    await Form.st_set_language.set()
-    await bot.send_message(
-        user_telegram_id, 
-        RESPONSES[user_language][30],
-        reply_markup=kbm_language_selection
-    )
+    await bot.send_message(user_telegram_id, RESPONSES[user_language][34])
+
+    # await Form.st_set_language.set()
+    # await bot.send_message(
+    #     user_telegram_id,
+    #     RESPONSES[user_language][30],
+    #     reply_markup=kbm_language_selection
+    # )
 
 @bot_dispatcher.message_handler(state=[Form.st_set_language])
 async def set_language_stage_2(message: types.Message, state: FSMContext):
@@ -387,7 +407,7 @@ async def set_language_stage_2(message: types.Message, state: FSMContext):
 
     await state.finish()
 
-    if not chk_is_element_in_keyboard(new_user_language, LANGUAGES_BUTTONS_TITLES):
+    if not chk_is_element_in_keyboard(new_user_language, LANGUAGE_BUTTONS_TITLES):
         await bot.send_message(
             user_telegram_id, 
             RESPONSES[user_language][31],
@@ -413,10 +433,9 @@ async def get_language(message: types.Message):
     await bot.send_message(user_telegram_id, message_to_send)
 
 @bot_dispatcher.message_handler()
-async def handle_text(message: types.Message):
+async def handle_text(message: types.Message, state: FSMContext):
     """
-    Handling commands, which writen with usual text.
-    Example: "Информация про бота" = \help
+    Handling all messages without states.
     """
 
     if message.text == "📝Добавить событие":
@@ -448,9 +467,6 @@ async def handle_text(message: types.Message):
     
     elif message.text == "❔Узнать язык":
         await get_language(message)
-
-    elif message.text == "❌Отмена":
-        await cancel_command(message)
 
 async def on_startup(bot_dispatcher: Dispatcher):
     users_notifier = UsersNotifier(bot)
@@ -527,6 +543,9 @@ def chk_month_limit(date: str, separator: str) -> bool:
         return False
 
     elif year < 1:
+        return False
+
+    elif year >= 3000:
         return False
 
     else: # If all limits observed.

@@ -15,7 +15,7 @@ Database configs:
 BOT_TOKEN = ""
 
 # Database configs.
-DATABASE_HOST = "127.0.0.1"
+DATABASE_HOST = "127.0.0.1" 
 DATABASE_NAME = ""
 DATABASE_USERNAME = ""
 DATABASE_PASSWORD = ""

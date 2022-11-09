@@ -16,11 +16,11 @@ Tables and their columns:
         user_event
         user_event_end_date
 
-PostgreSQL used as DBMS.
+PostgresSQL used as DBMS.
 
 Database init configs:
-    dbname: ***REMOVED***
-    owner: ***REMOVED***
+    dbname: howmanydaystilldb
+    owner: jakefish-postgres
     encoding: UTF-8
 """
 
@@ -60,13 +60,13 @@ class TableHandler:
             selected_rows = cursor.fetchall()
             print(selected_rows)
 
-            if selected_rows: # If list is not empty.
+            if selected_rows:  # If list is not empty.
                 return selected_rows, True
 
             else:
                 return [], False
-    
-    def execute_table_update_command(self, update_command: str) -> Tuple[List[Tuple], bool]:
+
+    def execute_table_update_command(self, update_command: str, do_fetch=True) -> Tuple[List[Tuple], bool]:
         """
         The table elements updating commands executing.
         The first returning element is the boolean value that the elements have been updated.
@@ -77,14 +77,14 @@ class TableHandler:
             cursor.execute(update_command)
             self.connection.commit()
 
-            updated_rows = cursor.fetchall() # Fetching updated rows.
-            print(updated_rows)
+            if do_fetch:
+                updated_rows = cursor.fetchall()  # Fetching updated rows.
+                print(updated_rows)
 
-            if updated_rows[0]: # Checking that elements were updated. 
-                return updated_rows, True
+                if updated_rows[0]:  # Checking that elements were updated.
+                    return updated_rows, True
 
-            else:
-                return [], False
+            return [], False
 
     def close_connection(self) -> None:
         """Closing a database connection."""
@@ -97,7 +97,7 @@ class UsersHandler(TableHandler):
 
     Columns description:
         user_id                 : user_id to link data from different tables : serial 
-        user_telegram_id        : user telegram id to send messages          : int
+        user_telegram_id        : user telegram id to send messages          : text
         user_notifications_time : selected time by user for notifies         : text   : default 12:00
         user_language           : selected user language                     : text
         user_time_zone          : selected user time zone                    : text   : default UTC+00:00
@@ -105,12 +105,19 @@ class UsersHandler(TableHandler):
 
     def __init__(self) -> None:
         super().__init__()
+        self.connect()
 
         self.table_name = "users"
 
-        self.connect()
+        table_create_request = f"CREATE TABLE IF NOT EXISTS {self.table_name}(" + \
+                               "user_id serial, " + \
+                               "user_telegram_id text, " + \
+                               "user_notifications_time text DEFAULT '12:00', " + \
+                               "user_language text DEFAULT 'ru', " + \
+                               "user_time_zone text DEFAULT 'UTC+00:00')"
+        self.execute_table_update_command(table_create_request, do_fetch=False)
 
-    def add_user( self, user_telegram_id: int) -> bool:
+    def add_user(self, user_telegram_id: int) -> bool:
         """
         Adding a new user to table.
         If user exists, function returns False
@@ -118,9 +125,9 @@ class UsersHandler(TableHandler):
         """
         select_command = f"SELECT * FROM {self.table_name} WHERE \
             user_telegram_id='{user_telegram_id}'"
-        _, is_element = self.execute_select_command(select_command)        
-        
-        if is_element: # If user with this user telegram id exists.
+        _, is_element = self.execute_select_command(select_command)
+
+        if is_element:  # If user with this user telegram id exists.
             return False
 
         else:
@@ -131,9 +138,7 @@ class UsersHandler(TableHandler):
 
             return True
 
-    def update_user_notifications_time(
-            self, user_telegram_id: int, time: str
-        ) -> bool:
+    def update_user_notifications_time(self, user_telegram_id: int, time: str) -> bool:
         """
         Change user notifications getting time.
         Uses user time zone and 24 hour format. 
@@ -141,7 +146,7 @@ class UsersHandler(TableHandler):
         update_command = f"UPDATE {self.table_name}\
             SET user_notifications_time='{time}'\
                 WHERE user_telegram_id='{user_telegram_id}'\
-                    RETURNING user_notifications_time"   
+                    RETURNING user_notifications_time"
         self.execute_table_update_command(update_command)
 
         return True
@@ -163,7 +168,7 @@ class UsersHandler(TableHandler):
         select_command = f"SELECT * from {self.table_name}"
         selected_rows, _ = self.execute_select_command(select_command)
 
-        return selected_rows 
+        return selected_rows
 
     def get_users_to_be_notified(self, time: str) -> List[Tuple]:
         """
@@ -177,8 +182,8 @@ class UsersHandler(TableHandler):
         return selected_rows
 
     def update_user_time_zone(self, user_telegram_id: str,
-            time_zone: str
-        ) -> bool:
+                              time_zone: str
+                              ) -> bool:
         """Changing user time zone."""
         update_command = f"UPDATE {self.table_name}\
             SET user_time_zone='{time_zone}'\
@@ -187,10 +192,10 @@ class UsersHandler(TableHandler):
         self.execute_table_update_command(update_command)
 
         return True
-    
-    def update_user_language(self, user_telegram_id: str, 
-            language: str
-        ) -> bool:
+
+    def update_user_language(self, user_telegram_id: str,
+                             language: str
+                             ) -> bool:
         """Changing user language."""
         update_command = f"UPDATE {self.table_name}\
             SET user_language='{language}'\
@@ -206,21 +211,26 @@ class EventsHandler(TableHandler):
     Events table handler.
 
     Columns description:
-        user_id             : user_id to link data from different tables : int
+        user_id             : user_id to link data from different tables : integer
         user_event          : user event description                     : text
-        user_event_end_date : user event end date to get notifies till   : date
+        user_event_end_date : user event end date to get notifies till   : text
     """
 
     def __init__(self) -> None:
         super().__init__()
+        self.connect()
 
         self.table_name = "users_events"
 
-        self.connect()
+        table_create_request = f"CREATE TABLE IF NOT EXISTS {self.table_name}(" + \
+                               "user_id integer," + \
+                               "user_event text, " + \
+                               "user_event_end_date text)"
+        self.execute_table_update_command(table_create_request, do_fetch=False)
 
-    def add_event(self, user_id: str, 
-            user_event: str, user_event_end_date: str
-        ) -> bool:
+    def add_event(self, user_id: str,
+                  user_event: str, user_event_end_date: str
+                  ) -> bool:
         """
         Adding new user event.
         Function have check that data was inserted before and returns bool of success adding. 
@@ -231,7 +241,7 @@ class EventsHandler(TableHandler):
 
         if is_result:
             return False
-        
+
         else:
             table_update_command = f"INSERT INTO {self.table_name}\
                 (user_id, user_event, user_event_end_date)\
@@ -239,7 +249,7 @@ class EventsHandler(TableHandler):
                         RETURNING user_id, user_event, user_event_end_date"
             _, _ = self.execute_table_update_command(table_update_command)
 
-            return True # Event has been added successfully.
+            return True  # Event has been added successfully.
 
     def del_event(self, user_id: str, user_event: str) -> bool:
         """
@@ -265,7 +275,7 @@ class EventsHandler(TableHandler):
     def is_user_event_in_table(self, user_id: str, user_event: str) -> bool:
         """
         Checking if a user event exists in the table.
-        """ 
+        """
         select_command = f"SELECT * from {self.table_name}\
             WHERE user_id='{user_id}' AND user_event='{user_event}'"
         _, is_data = self.execute_select_command(select_command)
