@@ -1,2 +1,2 @@
 # day_counter_bot
-This is a telegram bot to count days before some event.
+This is a telegram bot for counting days before some event.
