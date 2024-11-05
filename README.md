@@ -1,6 +1,6 @@
 # How Many Days Till Bot
 This is a telegram bot which counts days before some event. Messages example:
-![](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9SRRmhH4X5N2e4QalcoxVbzYsD44C-sQv-w&s)<br>
+![](Example.png)<br>
 Author of the project do not use this bot anymore, so it is turned off, but still you can host it yourself. 
 
 ## Installation and run
